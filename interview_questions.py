@@ -182,6 +182,21 @@ def isAnagram(string_1: str, string_2) -> bool:
 
     return sorted(string_1) == sorted(string_2)
 
+
+def countCharInWord(string: str) -> dict:
+    if len(string) == 0:
+        return {}
+
+    charCountDict = {}
+
+    for char in string:
+        if charCountDict.get(char):
+            charCountDict[char] += 1
+        else:
+            charCountDict[char] = 1
+
+    return charCountDict
+
 def main():
     test = "hello world"
     printCharactersInString(test)
@@ -198,6 +213,9 @@ def main():
     test_special_characters = "!@#"
     test_int = 3
     test_none = None
+
+    test_char_count = "abbcccddd"
+    print(f" the char count for: {test_char_count} is: {countCharInWord(test_char_count)}")
 
 
 
