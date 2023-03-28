@@ -216,6 +216,18 @@ def countVowelsInString(string: str) -> dict:
 
     return vowelCount
 
+
+def fizzBuzz(num: int) -> None:
+    for n in range(1, num + 1):
+        retval = ""
+        if n % 3 == 0:
+            retval = "Fizz"
+        if n % 5 == 0:
+            retval += "Buzz"
+        elif n % 3 != 0 and n % 5 != 0:
+            retval = f"{n}"
+        print(f"{n}: {retval}")
+
 def main():
     test = "hello world"
     printCharactersInString(test)
@@ -238,6 +250,11 @@ def main():
 
     test_char_count = "abbcccdddeeeeee"
     print(f" the vowel count for: {test_char_count} is: {countVowelsInString(test_char_count)}")
+
+    test_fizz_buzz = 18
+
+    print(f"FizzBuzz for: {test_fizz_buzz}: {fizzBuzz(test_fizz_buzz)}")
+
 
 
 if __name__ == "__main__":
