@@ -1,0 +1,287 @@
+import datetime
+import logging
+import re
+from enum import Enum
+from typing import Set
+
+import pyodbc
+import pyodc as pyodc
+import requests
+from tenacity import retry, wait_fixed
+
+# call the function every 60 seconds using the tenacity libraryt
+wait_time = 60
+
+
+@retry(wait=wait_fixed(wait_time))
+def log_scrapper(file_path: str):
+    # create regex expressions to scrape the file
+    timestamp = "yyyyMMdd hh:mm:ss.SSS"
+    info_level = timestamp + "INFO"
+
+    regex_level_error = re.compile(timestamp + " ERROR")
+    regex_level_info = re.compile(info_level)
+    statistics = "-Statistics-"
+    statistics_prefix = info_level + statistics
+
+    base_url = "http://someurl.hanweck.com"
+    error_url = base_url + "/Alerts"
+    stat_url = base_url + "/Stats"
+
+    # open up the log file specified by the file_path parameter using context manager
+    # this will close the handle to the log file when it is done.
+    with open(file_path, 'r') as logfile:
+        for line in logfile:
+
+            match_error = regex_level_error.findall(line)
+            if match_error:
+                # if we find an error send it to the url: http://someurl.hanweck.com/Alerts
+                requests.post(url=error_url, params={"msg": match_error})
+
+            match_info = regex_level_info.findall(line)
+            if match_info:
+                if statistics in match_info:
+                    # split out each info stat into its own tag value pair (Stat1:1:00)
+                    # remove the prefix INFO “yyyyMMdd hh:mm:ss.SSS INFO –Statistics –
+                    line_no_prefix = match_info.removePrefix(statistics_prefix)
+                    stat_tokens = line_no_prefix.split(",")
+                    for token in stat_tokens:
+                        name_value = token.split(":")
+                        # send each stat name/value pair to the Stat url
+                        requests.post(url=stat_url, params={name_value[0], name_value[1]})
+
+
+class OptionType(Enum):
+    PUT = "p"
+    CALL = "c"
+
+
+
+def connDB(db_conn: str) -> pyodbc.connect:
+    try:
+        return pyodc.connect(db_conn)
+    except Exception as exp:
+        # Need to log exception and possible re-raise
+        print(f"Failed to connect to db: {db_conn}")
+
+def closeDB(conn: pyodc):
+    conn.close()
+
+
+def getUnderliners(conn: pyodbc) -> list:
+    try:
+        cursor = conn.cursor()
+        sql_select_query = """SELECT underliner FROM optionContract"""
+        cursor.execute(sql_select_query,)
+        return cursor.fetchall()
+
+def getOptionId(conn: pyodc, underlier: str, optionFilter: str ="*") -> int:
+    try:
+        cursor = conn.cursor()
+        sql_select_query = """SELECT optionId FROM optContract WHERE Underlier = %s AND putCall = %s"""
+        cursor.execute(sql_select_query, (underlier, optionFilter))
+
+        records = cursor.fetchall()
+
+        if len(records) != 1:
+            # this should probably be a SQL exception
+            raise Exception(f"Did not find an optionID for the underlier: {underlier}")
+
+
+
+def getOptionIdByPrice(conn: pyodc, underlier: str, price: float = 0.00) -> int:
+    try:
+        cursor = conn.cursor()
+        sql_select_query = """SELECT optionId FROM optContract WHERE Underlier = %s AND price > %f AND """
+        cursor.execute(sql_select_query, (underlier, price))
+
+        records = cursor.fetchall()
+
+        if len(records) != 1:
+            # this should probably be a SQL exception
+            raise Exception(f"Did not find an optionID for the underlier: {underlier}")
+
+
+def totalOpenInterest(conn: pyodc, date: datetime, optionId: str,) -> int:
+    cursor = conn.cursor()
+    sql_select_query = """SELECT optionId FROM optPrice WHERE optionId: = %s AND date = %s"""
+    cursor.execute(sql_select_query, (optionId,date))
+    records = cursor.fetchall()
+
+    total = 0
+    for record in records:
+        # add each open interest returned for each record
+        total += record.openInterest
+
+    return total
+
+def totalOpenVolume(conn: pyodc, date: datetime, optionId: str) -> int:
+    cursor = conn.cursor()
+    sql_select_query = """SELECT optionId FROM optContract WHERE optionId: = %s AND date = %s"""
+    cursor.execute(sql_select_query, (optionId, date))
+    records = cursor.fetchall()
+
+    total = 0
+    for record in records:
+        # add each open interest returned for each record
+        total += record.openVolume
+
+    return total
+
+
+def getAllUnderlinersOptionData(conn: pyodc, date: datetime, optionFilter: str ="*"):
+    try:
+        conn = connDB(db_conn="db connection data")
+        underliners = getUnderliners()
+        for underliner in underliners:
+            optionId = getOptionId(conn=conn, underliner=underliner, optionFilter=optionFilter)
+            totalOpenInterest = totalOpenInterest(conn, date, optionId=optionId)
+            totalOpenVolume = totalOpenVolume(conn, date, optionId=optionId)
+
+        return totalOpenInterest, totalOpenVolume
+    finally:
+        closeDB(conn)
+
+
+def findOptionByDateRange(conn: pyodc, start_date: datetime, stop_date: datetime,) -> dict:
+    if stop_date > start_date:
+        raise Exception("Stop date is greater than start date")
+
+    underliers_by_date = {}
+    while date <= stop_date:
+        underliers =  getAllUnderlinersOptionData(conn, date)
+        underliers_by_date[date] = underliers
+
+        # increment date to the next date
+        date = date + 1
+
+    return underliers_by_date
+
+
+def findOptionByDateRangeFilterByPrice(conn: pyodc, start_date: datetime, stop_date: datetime, optionPrice) -> dict:
+    if stop_date > start_date:
+        raise Exception("Stop date is greater than start date")
+
+    underliers_by_price = {}
+    while date <= stop_date:
+        underliers =  getAllUnderlinersOptionData(conn, date)
+        for underlier in underliers:
+
+        # assume price of 0 is Null
+            getOptionIdByPrice(conn, date, optionPrice)
+        # increment date to the next date
+        date = date + 1
+
+    return underliers_by_price
+
+
+
+def parse_csb(input_file_path, output_file_path):
+    stock_data = {}
+
+    # assuming stock info is this example AAPL,2022-01-01 01:02:03.456,99.4
+    input_file = open(input_file_path, "f")
+    log_file_lines = input_file.get_all_lines()
+
+        for line in log_file_lines:
+            line_tokens = line.split(",")
+            if stock_counter.get(line_tokens[0]):
+                # store the ticker as the key and the other info as dict to
+                # ticker key
+
+            else:
+                # store the ticker as the key and the other info as dict to
+                # ticker key
+                stock_counter[line_tokens[0]] = 1
+            #psuedo code
+            # check for min price and upate
+            # check for max price and update
+
+
+    input_file.close()
+
+                # psuedcode
+    with open(output_file_path, "w") as CSV:
+        for stock in stock_data:
+            NumberObservations = stock.min
+            StockMin = stock.min
+            stockMax = stock.max
+            stockAverage = (stockMin + stockmax) / (NumberObservations)
+            devation = calculationDevation(stock)
+            CSV.write(stock=stock.Name, date, NumberObservations, stockMax, stockAverage, devation)
+
+            if devation > 2:
+              CSV.write(stock = stock.name, "indication level", devation = devation)
+
+
+
+
+
+
+
+
+def main():
+    log_scrapper(file_path="log.txt")
+
+    # for a given date get total open interest and volume for each underliner
+    conn = None
+    date = datetime.date.today()
+
+    getAllUnderlinersOptionData(conn, date)
+
+    # for a given date get total open interest and volume by puts and calls for each underlier
+
+    getAllUnderlinersOptionData(conn, date, "p")
+    getAllUnderlinersOptionData(conn, date, "c")
+
+
+    # Get each underlier by date range
+    findOptionByDateRange(date-1, date, conn, optionPrice="*")
+
+    # Get each underlier by price is 0.00 which I assume is Null
+
+    findOptionByDateRangeFilterByPrice(date-1, date, conn, optionPrice=0.00)
+
+
+    #For a range of dates, @dateMin to @dateMax find options with average volume above 1000 d return all data from OptPrice table for those options for the same date range.
+
+    # Feel like this last one can be solved by using a JOIN but I am running low on time
+    underliers_by_date_range =   findOptionByDateRange(date-1, date, conn)
+
+
+
+    underliers_average_volume = {}
+    # iterate through the underliers by date
+    for date in underliers_by_date_range.keys():
+        for underliers_by_date_range in date.items():
+
+            # add each underliers volume to the dict
+            underliers_average_volume[underliers_by_date_range].append()
+
+
+    underliers_with_volume_larger_1000 = {}
+
+    for underlier_vols in underliers_average_volume.keys():
+        for vol in underlier_vols:
+            vol += vol
+        if vol/ len(underlier_vols) > 1000:
+            underliers_with_volume_larger_1000[underlier_vols]
+
+
+
+
+        #scripting
+
+
+
+
+
+
+
+
+
+
+
+
+if __name__ == "__main__":
+    main()

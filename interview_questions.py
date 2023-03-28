@@ -228,6 +228,8 @@ def fizzBuzz(num: int) -> None:
             retval = f"{n}"
         print(f"{n}: {retval}")
 
+
+
 def main():
     test = "hello world"
     printCharactersInString(test)
