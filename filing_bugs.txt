@@ -1,0 +1,55 @@
+What are the critical pieces to writing a good automated test case?
+
+Critical to writing a good test case, is what is the expected behavior.
+This is true for unit, feature, system, and UI testing.
+You can not write a good test case if you don't know what the expected behavior is suppose to be.
+
+Other critical things to know is, what is needed to for the setup and teardown for each test case.
+You want to make sure that the testing environment is in a known good state before the test begins.
+
+Test case should be autonomous and independent in nature.
+The outcome of a single test case shouldn't have an effect upon the result of another test case.
+
+Typically, a test case should be brittle, in the sense that if test fails, the test case is reported as failure without
+the test case trying to do a bunch of error recovery.
+
+
+When writing a defect, what information would you add?:
+1. The environment where the defect was found. Package, build version, dependencies' version, OS Version, relevant tools
+used for testing and their version (i.e. browser versioning for UI testing).
+2. When it was found.
+3. How it was found: all pertinent steps needed to reproduce the bug
+4. What was the expected behavior and what was the actual behavior
+5. How reproducible the bug is.
+6. How severe the bug is.
+7. How likely the bug is to happen in production or effect a customer.
+8. How to recover from the defect's unexpected behavior.
+9. Logs, screenshots, or code snippets related to the defect.
+10. See if the behavior or bug signature has been seen already and see if the bug is new or a regression from a previous
+fix.
+11. If possible, what developer's ticket implementation is found to have the defect.
+
+What are good and bad automation candidates?
+Good automation candidates depends on many factors, such as resource constraint, environment in which they are going
+to be run in, ROI of the automated test case.
+
+When looking at a potential test case, the first question that should be asked, should the test case be automated or manual.
+If the test case doesn't need physical intervention and appears to be automate-able, further considerations to think of are:
+how long will it take to implement the test case, how long will it take for the test case to run, what additional resources or setup might be need for
+the automated test case, what is the ROI of the test case?
+
+
+A good automation candidate test case validates/verifies the core functionality of a feature spec/API spec/product spec.
+The test case should ensure quality to help mitigate high severity and/or highly likely defects.
+
+A bad test case candidate is something that should not be automated in the first place.
+A bad test case candidate is something that takes a long time to implement, that requires a lot of resources,
+that has very little ROI to the product's functionality or customer's experience.
+
+
+What would you do if you write a defect and a developer pushes back and states it's not a defect?
+I would ask questions to understand why they believe the actual behavior being reported in the defect is expected behavior.
+I would look at the documentation, specification, or internal communication to help elucidate my understanding. Looking
+at these independent resources can help verify that the actual behavior being seen doesn't match the expected behavior and
+act as additional evidence to the developer's push back.
+

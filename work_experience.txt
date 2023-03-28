@@ -1,0 +1,216 @@
+NetApp
+
+Overview:
+Worked test automation on HCI and Astra both were hybrid cloud storage applications designed to work in kubernetes environments
+running both on premises and in the cloud. These applications were kubernetes based and allowed customers to do
+snapshots, backups, of data and kubernetes applications. So essentially you could deploy Astra onto your machine in the
+Astra namespace, and then have it add applications from other namespaces that could be backed up or have snapshots
+taken at regular intervals. This could work both on premises and in the cloud and move workloads between the two.
+
+I wrote comprehensive and coded feature test plans, focused mainly API testing. For the last few years the feature
+test plans were mostly around authorization and authentication for the on premise application. I did this by working with
+other SETs, QA, QEs, Devs, and PO to help ensure their was a consensus on what was being tested.
+
+For the on premise version of Astra, we rolled our own authentication, identity, and tenacy service, which I tested
+using mostly pytest that ran in a CICD pipeline. The CICD pipeline utilized Jenkins. So I had to work with Groovy scripts.
+
+The last feature I was testing, was incorporating Windows LDAP as the Authentication provider instead of our own
+authentication service. By delegating the authentication to an LDAP server, was in order to appeal to large customers that had 1000s to 10,000s of users and
+wanted to leverage their own internal LDAP authentication system.
+
+
+The challenges around the automation testing I have found is not writing the test itself against the API and
+checking the response status code and status message, but rather the setting the environment to run the test in the first place.
+
+For example, to do LDAP testing I first had to learn how to utilize and deploy windows 2012/2016 on to a VM.
+Then I needed to learn how to populate the VMs with 1000s of users and each users being 10s to 100s of groups.
+I did this using powershell multi-threading called runspaces in order to make sure the VM could be populated with users
+in parallel reducing the populatation time by hours.
+
+Then I needed to learn how to use the LDAP3 library to connect to the Windows LDAP server and query it users and ground
+via the Distinguished Names
+
+Next I need to work with a DevOps specialist to get those scripts into CICD.
+
+I also need to save the configuration data to connect to the LDAP VM in vault, because you don't want sensitive information
+such as passwords, and secrets, or PII stored in Github.
+Then I needed to learn how to pull the configuration to the Windows VM server from vault and save it
+as Data Class.
+
+After doing that, I need to take those basic setup commands and turn them into pytest fixtures so they could be
+re-used based on the scope of the testing (function, class, package, session).
+
+The ability to connect and view the state of the Window AD LDAP server was used to modify the AD LDAP server for
+specific test and could also help verify that the feature testing against the API was correct.
+
+
+Then I needed to learn how the Astra client API was connecting to the window AD LDAP sever which was being done under the
+covers by a 3rd party software name keycloak.
+
+
+
+
+So essentially getting the end-to-end plumbing down for the automation framework was almost all my responsibility with
+a little help from DevOps that created a stand alone Jenkins job to populate an AD LDAP Server with users and groups
+that was leveraging the multi-threaded powershell scripts that I had write (runspaces).
+
+
+
+Before this I worked on allowing ACC to use multiple ingress controllers Traefik or NGINX
+The challenge to this was that NGINX was being supported on OpenShift and there were subtle difference to successfully
+deploy Traefik or NGINX on OpenShift OS and having the ability to switch between the different Ingress controller types
+for testing was difficult.
+
+Also, this required for the allocation and maintainence of lockable openshift kubernetes clusters in our CICD pipeline
+which presented its own challenges.
+
+Mypy
+githooks
+make
+
+
+
+Spectra Logic
+
+Most worked on a multi-level software testing application called tester that could test different configurations and
+models of tape libraries via the UI, API/feature level, and System level. The tester Application was kinda a catch all tool
+for both manual and automated tested written by the testing team that I worked it. It was written mostly in Java.
+
+The test automation team also wrote other pieced of software that could work together in concert for a whole
+distributed test case automation service.
+
+So at any time but mostly at the end of the day, the manual testers would fire up the tester application and have it connect
+the tape library and tester would figure out what tape library it was, its configuration, what kind of media it had in it
+etc.
+
+When automation was turned on, tester would go out to the distributor and say hey, I have this type of library with this
+type of configuration, give me a testcase to run on this tape library.
+
+Tester would then get the testcase as an xml object unmarshal into the java command that would be issued to the
+tape library. After the test case was run, the test case success of failure would be reporte back to the
+test case management software testlink, and another piece of software that was dashboard of all the testcases that had
+been run, on the dash board it would have the test case, library it was run on, whether it was successful or not, and
+have a link to all the logs gathered for that testcase execution.
+
+So we look at failure and do root cause analysis on the failures and maintain the software used for running all the
+automation (Tester, Distributer, LogGather, BlueXML...) etc. We reponsible for updating tester to test new features, and UI
+changes etc.
+
+Tester itself would have these other application stored as jar files in it. So Loggather, Distributor Client, BlueXml)
+
+I was hoping to implement an ELK stack and have structured logging.
+
+
+
+Tough Time Testing An API Example:
+
+Last job testing the LDAP Feature was tough because it involved a series of API calls but not much insight
+into when the API failed.
+
+The LDAP feature was made up of 3 components.
+Astra -> Keycloak -> LDAP Server
+
+When the feature service's settings API was called and supplied with the configuration information to connect to the
+LDAP API, it would first contact the Keycloak service which was a 3rd party opensource software that we used for
+implementing LDAP.
+
+Keycloak would then attempt to connect to the LDAP server using the credentials and import all the users and groups
+specified in the feature service's setting API call. This call would return a 204 because it was a put.
+So in order to verify that the LDAP server was successfully connected and had imported the users and groups required calling a
+a few API calls.
+
+You had to call the GET settings API and parse the json response to make sure the status was connected.
+
+Since the PUT was an aysnc call that immediately called the keycloak service and there was no direct way for the
+us testers to talk to the internal keycloak service. You would have to port forward keycloak and redeploy the
+replicaset, in order to have access to the Keycloak UI interface in order to debug the issues.
+
+Another problem was that, the LDAP issue had a scale issue and was intended for a large client that had almost 200k employees.
+So we really had to bother Product Manager, and Product Owners to make sure what the acceptable specs would be
+because the orginal MVP version of LDAP didn't scale very well.
+
+So you could be polling on the GET settings API for up to 15 minutes before you realized the ldap configuration was bad
+or the DN for the user or group was bad.
+
+Also this feature involved testing logging in or...via the backend getting bearer token for the LDAP user once the configuration
+of the LDAP server was correct.
+
+Which meant that the feature need to have user and groups with the correct permissions as well.
+
+So the testing for the feature span multiple APIs across multiple services (identity, authenticaion (JWT), keycloak)
+
+How to test an API.
+
+1. You should know what is the API for, why does it exist. What are the API requirements (What CRUD operations can be
+performed)
+For example the Feature setting API existed to enable LDAP configuration. This was to help customers
+leverage their existing internal authenticaion/authorization framework when logging into Astra and giving
+users the correct permissions to Applicaton management (backup, snapshots, etc)
+
+2. What is the expected behavior, which should be based on an API spec. The API spec should be agreed upon and have
+a consensus between all stake holders (PM, PO, Devs, SETs, QA, QE)
+
+If there is ambiguity for each API endpoint and it query parameters or request body, response status, or response message,
+these should be ironed out collabortatively and must likely iteratively.
+
+we have an API SIG
+
+I would like to have a common POSTMan request library that can be shared between DEVs, SETs, QA, QE, etc
+
+
+3. Each API test should be testing a single independent feature or function (Single responsibility principle)
+Do one thing and do it well.
+
+The result of one test should not effects the results of another test.
+So the environment should be in a good and well know state for each testcase
+This can be done in python using TestCase fixtures for setup and teardown between test cases.
+
+4. Should organize endpoints
+At NetApp all the tests exists in a single folder, but the folder is divided up into
+UI, Feature, and Service level tests.
+
+Inside the feature folder they were broken into separate features if necessary or services.
+
+The API testing should be organized in a logical way to leverage PyTest fixtures as much as possible to reduce
+code duplication and help enforce consistency between the test cases.
+
+For specialized fixtures for a feature, services...etc each folder can have its own conftest
+
+5. Try to get as much automation in place as early as possible.
+
+6. Focus on your core happy path testing.
+For authentication (make sure you can login or get a bearer token)
+
+Get these tests into your CICD framework as early as possible in order to catch issues early
+
+7. Utilize frameworks as much as possible.
+
+We used Pytest for most of our testing, but also leverage Jenkins to populate VMs, make to spin up containers for our
+client application
+
+8. Verify your request response and capture any relevant failure info.
+
+For example most of test were API driven and used the Python Requests library.
+When a test asserted, we enforced via code review, that the assert message contained all the information regarding the
+request response to help with root cause analyssis.
+
+
+9. Create positive and negative test cases
+The planning of the testcase was done by creating feature tests plans that were reviewed by the Devs, POs, SET, QA.
+
+The plan would be organized by endpoint and their happy path and sad path testing scenarions.
+
+This would then be useful in creating and sizing stories in Jira. It would also help reveal any additional CICD work that
+needed to be done and possible help come up with more scenarios for DEVs and PO to think about.
+
+For example when testing LDAP we didn't know if we had to support 1k, 10k, 100k users for our MVP.
+Adding this requirement help us understand the scale requirements for the feature.
+
+10. Focus on the ROI of the feature with PO, and Devs.
+
+you don't know what is going to be important.
+
+
+
+
+

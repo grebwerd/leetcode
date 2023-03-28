@@ -1,0 +1,70 @@
+Communication/Design
+Do you feel like the developers/team are silo-ed with tribal knowledge?
+How does the organization avoid tribal knowledge (Confluence, internal stack overflow, wiki)?
+How are architecture decisions made, especially when it will impact multiple teams
+What is the development process (Scrum, SAFe, Kanban)
+
+Type of Technology
+
+Rcopia (medication management platform)
+Prescribe
+(Java, Spring, Rest API, Apnium, cypress, Selenium)
+Integrated platform, how do we make this smarter
+Make things flow better
+How are you delivery to the doctor
+Fiscal year goal, build for speciality Pharmacy
+e-proscirbe, legend drugs, before things get on the certain list, common part of healthcare
+insurance/pharmacy agreements
+big gaps before they come into the legend. things that need prior authorization
+patients have to go through hoops to get, there are certain things that doctor have to track and trail
+
+
+rcopia
+
+example: fibrosis, taking this drug for the last few years.
+
+
+
+APIs.
+Are there design principles or conventions you guys follow?
+Do the microservices APIs have a standardized naming convention (including request query parameters, request body, response status codes, and response body?
+Do you use Swagger/OpenAPI to document your API?
+
+Code Base/Code Reviews
+Is the code base a monorepo?
+What is used for version control (git, perforce, svn)?
+They use GIT
+Is there a branch strategy or model that is being followed?
+How many reviewer approvals are needed to merge a pr?
+Does a PR need to pass different levels of feature/system/UI testing before it can be merged?
+What version of Java are you using?
+Are build artifacts stored on prem or in the cloud?
+Are the applications using structure logging that can then be leveraged by an ELK stack for debugging and root cause analysis?
+
+Testing Automation/CI
+Is your CICD on premise or in the cloud?
+Do you feel like you have enough resources for the CICD pipeline?
+How long does it take different stages of the pipeline to run?
+Does the pipeline run concurrently?
+Hybird
+
+Is the CI pipeline stable?
+How long does it take to address CICD pipeline issues?
+Is there a dedicated team that manages the CICD pipeline?
+What frameworks do you use for your automation testing for both backend and frontend?
+Junit, Pytest, Postman, Selenium, ...etc
+Are Feature Test Plans written?
+Is Test Case Management Software such as (Testlink or QTest) being used?
+Do software developers do both dev and test work or is there a clear delineation between dev work and test work?
+Partnership, collaborative, root cause analysis
+How are bugs tracked, triaged, and assigned?
+
+Release Process/CD
+What is your release process like (every 2 weeks, every quarter)
+What determines when a feature is completed and ready to be released?
+What is the biggest bottleneck in your release cycle
+
+Do you guys have an application that integrates with wearable technology (Garmin/Apple Watch) to assist in horizontal communication with other clients, vendors, or physicians?
+
+
+Friday at 2pm 
