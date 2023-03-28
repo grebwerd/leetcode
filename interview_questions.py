@@ -197,10 +197,29 @@ def countCharInWord(string: str) -> dict:
 
     return charCountDict
 
+def countVowelsInString(string: str) -> dict:
+    if len(string) == 0:
+        return {}
+
+    vowels = "aeiou"
+    vowelCount = {
+        "a": 0,
+        "e": 0,
+        "i": 0,
+        "o": 0,
+        "u": 0
+    }
+
+    for char in string:
+        if char in vowels:
+            vowelCount[char] += 1
+
+    return vowelCount
+
 def main():
     test = "hello world"
     printCharactersInString(test)
-    test_empty =""
+    test_empty = ""
     expect_empty = {}
     test_noncapitalized = "abc"
     expect_noncapitalized = {"a": 1, "b": 1, "c": 1}
@@ -217,7 +236,8 @@ def main():
     test_char_count = "abbcccddd"
     print(f" the char count for: {test_char_count} is: {countCharInWord(test_char_count)}")
 
-
+    test_char_count = "abbcccdddeeeeee"
+    print(f" the vowel count for: {test_char_count} is: {countVowelsInString(test_char_count)}")
 
 
 if __name__ == "__main__":
